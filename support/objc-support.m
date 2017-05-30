@@ -167,11 +167,14 @@ NSDate* mono_embeddinator_get_nsdate (E4KDateTime* datetime)
 	if (!dtkindmethod)
 		dtkindmethod = mono_embeddinator_lookup_method ("System.DateTimeKind:get_Kind()", datetimeclass);
 
+	printf ("\n DateData: %lld", datetime->DateData);
 	MonoObject* kindex = nil;
 	MonoObject* kindboxed = mono_runtime_invoke (dtkindmethod, datetime, NULL, &kindex);
 	if (kindex)
 		mono_embeddinator_throw_exception (kindex);
 	E4KDateTimeKind kind = *(E4KDateTimeKind *) mono_object_unbox (kindboxed);
+	printf ("\n kindex: %s", kindex == nil ? "Was nil" : "Oopss!");
+	printf ("\n kind: %d", kind);
 
 	if (kind == E4KDateTimeKind_Local) {
 		if (!dttoutcmethod)
@@ -190,6 +193,9 @@ NSDate* mono_embeddinator_get_nsdate (E4KDateTime* datetime)
 		mono_embeddinator_throw_exception (ticks_ex);
 	long long ticks = *(long long *) mono_object_unbox (ticksboxed);
 
+	printf ("\n ticks_ex: %s", ticks_ex == nil ? "Was nil" : "Oopss!");
+	printf ("\n ticks: %lld \n", ticks);
+
 	NSTimeInterval seconds = (NSTimeInterval) (ticks - NSDateRefDateTicks) / NetTicksPerSecond;
 	NSDate* nsdate = [NSDate dateWithTimeIntervalSinceReferenceDate:seconds];
 
@@ -203,13 +209,17 @@ E4KDateTime mono_embeddinator_get_system_datetime (NSDate* nsdate, mono_embeddin
 	MonoClass* datetimeclass = mono_embeddinator_get_datetime_class ();
 	int utc = E4KDateTimeKind_Utc;
 	long long minvalueticks = DateTimeMinValueTicks;
+	printf ("\n datetimeclass: %s.%s", mono_class_get_namespace (datetimeclass), mono_class_get_name (datetimeclass));
+	printf ("\n minvalueticks: %lld", minvalueticks);
 
 	void* datetimeargs [2];
 	if (!nsdate)
 		datetimeargs [0] = &minvalueticks;
 	else {
 		long long nsdateinterval = [nsdate timeIntervalSinceReferenceDate];
+		printf ("\n timeIntervalSinceReferenceDate: %lld", [nsdate timeIntervalSinceReferenceDate]);
 		long long dateticks = nsdateinterval * NetTicksPerSecond + NSDateRefDateTicks;
+		printf ("\n dateticks: %lld", dateticks);
 
 		if (dateticks > DateTimeMaxValueTicks)
 			dateticks = DateTimeMaxValueTicks;
@@ -219,18 +229,30 @@ E4KDateTime mono_embeddinator_get_system_datetime (NSDate* nsdate, mono_embeddin
 		datetimeargs [0] = &dateticks;
 	}
 
+	printf ("\n datetimeargs [0]: %lld", *(long long *) datetimeargs [0]);
+
 	datetimeargs [1] = &utc;
+
+	printf ("\n datetimeargs [1]: %d", *(int *) datetimeargs [1]);
 
 	if (!datetimector)
 		datetimector = mono_embeddinator_lookup_method ("System.DateTime:.ctor(long,System.DateTimeKind)", datetimeclass);
 
+	printf ("\n datetimector: %s", datetimector == nil ? "Was nil" : "Not nil!");
+	printf ("\n datetimector: %s", mono_method_full_name (datetimector, TRUE));
+
 	MonoObject* datetimeshell = mono_object_new (context->domain, datetimeclass);
 	E4KDateTime datetime = *(E4KDateTime *) mono_object_unbox (datetimeshell);
+
+	printf ("\n datetime: %lld", datetime.DateData);
 
 	MonoObject* ex = nil;
 	mono_runtime_invoke (datetimector, &datetime, datetimeargs, &ex);
 	if (ex)
 		mono_embeddinator_throw_exception (ex);
+
+	printf ("\n ticks_ex: %s", ex == nil ? "Was nil" : "Oopss!");
+	printf ("\n datetime: %lld \n", datetime.DateData);
 
 	return datetime;
 }
